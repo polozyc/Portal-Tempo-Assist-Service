@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Tempo Assist — Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-box {
+    background: white; padding: 32px; border-radius: 10px; width: 100%; max-width: 360px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .login-box h1 { font-size: 20px; margin: 0 0 4px; color: #0b3d91; }
+  .login-box p { color: #666; font-size: 13px; margin: 0 0 20px; }
+  .login-box form { flex-direction: column; }
+  /* flex: 0 0 auto e essencial aqui. A regra global usa flex-basis 180px
+     para dar largura minima nos formularios horizontais; como este form
+     e vertical, aquele valor viraria ALTURA e esticaria cada campo. */
+  .login-box label { width: 100%; flex: 0 0 auto; margin-bottom: 14px; }
+  .login-box button { width: 100%; margin-top: 4px; }
+</style>
+</head>
+<body>
+  <div class="login-box">
+    <img src="img/logo.png" alt="Tempo Assist" class="login-logo" />
+    <h1>Tempo Assist</h1>
+    <p>Service Desk — entre para continuar</p>
+    <form id="login-form">
+      <label>Usuário <input type="text" id="username" autocomplete="username" required /></label>
+      <label>Senha <input type="password" id="password" autocomplete="current-password" required /></label>
+      <button type="submit">Entrar</button>
+    </form>
+    <div id="login-feedback" class="feedback"></div>
+  </div>
+
+  <script>
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const feedback = document.getElementById("login-feedback");
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
+
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          feedback.textContent = data.error || "Erro ao entrar.";
+          feedback.className = "feedback show error";
+          return;
+        }
+
+        window.location.href = "/";
+      } catch (err) {
+        feedback.textContent = "Erro de conexão com o servidor.";
+        feedback.className = "feedback show error";
+      }
+    });
+  </script>
+</body>
+</html>

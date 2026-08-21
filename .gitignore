@@ -1,0 +1,28 @@
+# Segredos — NUNCA commitar
+.env
+.env.local
+.env.*.local
+
+# Dependências
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Banco local (caso alguém rode Postgres em container com volume aqui)
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Sistema operacional / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build / temporários
+dist/
+tmp/

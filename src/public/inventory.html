@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Tempo Assist — Estoque do Laboratório</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1 class="brand"><img src="img/logo.png" alt="Tempo Assist" class="brand-logo" /><span>Tempo Assist — Estoque do Laboratório</span></h1>
+    <nav>
+      <a href="/hub.html" class="tab-btn">← Voltar ao Hub</a>
+      <button data-tab="scan" class="tab-btn active">Scanner</button>
+      <button data-tab="cadastro" class="tab-btn">Cadastrar item</button>
+      <button data-tab="itens" class="tab-btn">Itens</button>
+      <button data-tab="historico" class="tab-btn">Histórico</button>
+      <button id="logout-btn" class="tab-btn" style="margin-left: auto; background: rgba(255,255,255,0.08);">Sair</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ABA: SCANNER -->
+    <section id="tab-scan" class="tab-panel">
+      <h2>Registrar entrada / saída</h2>
+      <p class="hint">Clique no campo abaixo e passe o leitor no código de barras. O scanner digita e aperta Enter sozinho.</p>
+
+      <form id="scan-form">
+        <label>
+          Código de barras
+          <input type="text" id="scan-barcode" autocomplete="off" autofocus />
+        </label>
+
+        <label>
+          Ação
+          <select id="scan-action">
+            <option value="OUT">Saída (retirada)</option>
+            <option value="IN">Entrada (devolução)</option>
+          </select>
+        </label>
+
+        <label>
+          Responsável pela retirada
+          <input type="text" id="scan-person" placeholder="Quem está com o item fisicamente" />
+        </label>
+
+        <label class="out-only">
+          Chamado (Jira)
+          <input type="text" id="scan-ticket" placeholder="ex: SD-123" />
+        </label>
+
+        <label class="out-only">
+          Setor
+          <input type="text" id="scan-department" placeholder="ex: Financeiro" />
+        </label>
+
+        <label class="out-only">
+          Solicitante
+          <input type="text" id="scan-requester" placeholder="Quem pediu o equipamento" />
+        </label>
+
+        <label>
+          Observação
+          <input type="text" id="scan-notes" placeholder="opcional" />
+        </label>
+      </form>
+
+      <div id="scan-feedback" class="feedback"></div>
+
+      <table>
+        <thead><tr><th>Hora</th><th>Item</th><th>Ação</th><th>Chamado</th><th>Setor</th><th>Solicitante</th></tr></thead>
+        <tbody id="scan-log"></tbody>
+      </table>
+    </section>
+
+    <!-- ABA: CADASTRO -->
+    <section id="tab-cadastro" class="tab-panel hidden">
+      <h2>Cadastrar novo item</h2>
+      <form id="create-form">
+        <label>Código de barras <input type="text" id="new-barcode" required /></label>
+        <label>Nome do equipamento <input type="text" id="new-name" required /></label>
+        <label>Categoria <input type="text" id="new-category" placeholder="ex: notebook, sensor, kit" /></label>
+        <label>Nº de série <input type="text" id="new-serial" /></label>
+        <label>Localização <input type="text" id="new-location" placeholder="ex: Armário 3" /></label>
+        <button type="submit">Cadastrar</button>
+      </form>
+      <div id="create-feedback" class="feedback"></div>
+    </section>
+
+    <!-- ABA: ITENS -->
+    <section id="tab-itens" class="tab-panel hidden">
+      <h2>Itens em estoque</h2>
+      <input type="text" id="items-search" placeholder="Buscar por nome, código ou série..." />
+      <table>
+        <thead><tr><th>Código</th><th>Nome</th><th>Categoria</th><th>Status</th><th>Local</th><th>Chamado</th><th>Setor</th><th>Solicitante</th></tr></thead>
+        <tbody id="items-table"></tbody>
+      </table>
+    </section>
+
+    <!-- ABA: HISTÓRICO -->
+    <section id="tab-historico" class="tab-panel hidden">
+      <h2>Histórico de movimentações</h2>
+      <table>
+        <thead><tr><th>Data</th><th>Item</th><th>Código</th><th>Ação</th><th>Responsável</th><th>Chamado</th><th>Setor</th><th>Solicitante</th><th>Obs.</th></tr></thead>
+        <tbody id="history-table"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="js/common.js"></script>
+  <script src="js/inventory.js"></script>
+</body>
+</html>

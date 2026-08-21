@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Tempo Assist — Aprovações</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+<style>
+  .approval-card {
+    background: white; border-radius: 8px; padding: 18px; margin-bottom: 14px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); border: 1px solid #eee;
+  }
+  .approval-card h3 { margin: 0 0 6px; font-size: 16px; color: #0b3d91; }
+  .approval-card .meta { font-size: 13px; color: #666; margin-bottom: 10px; }
+  .approval-card .desc { white-space: pre-wrap; font-size: 14px; margin-bottom: 12px; background: #f8f9fb; padding: 10px; border-radius: 6px; }
+  .approval-actions { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+  .approval-actions textarea { flex: 1 1 250px; min-width: 200px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; }
+  .btn-approve { background: #1e7d34; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+  .btn-reject { background: #c5221f; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+  .empty-state { color: #666; text-align: center; padding: 40px 0; }
+  .approval-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .approval-tab-btn {
+    background: #eef1f6; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;
+    font-size: 14px; color: #444;
+  }
+  .approval-tab-btn.active { background: #0b3d91; color: white; }
+  .approval-tab-panel.hidden { display: none; }
+  .ticket-link { display: inline-block; margin-top: 4px; font-size: 13px; color: #0b3d91; text-decoration: none; font-weight: 600; }
+  .ticket-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <header>
+    <h1 class="brand"><img src="img/logo.png" alt="Tempo Assist" class="brand-logo" /><span>Tempo Assist — Aprovações</span></h1>
+    <nav>
+      <a href="/hub.html" class="tab-btn">← Voltar ao Hub</a>
+      <button id="logout-btn" class="tab-btn" style="margin-left: auto; background: rgba(255,255,255,0.08);">Sair</button>
+    </nav>
+  </header>
+
+  <main>
+    <p id="departments-text" style="color:#666; margin-bottom: 12px;"></p>
+
+    <div class="approval-tabs">
+      <button class="approval-tab-btn active" data-tab="pending">Pendentes</button>
+      <button class="approval-tab-btn" data-tab="approved">Aprovados / Histórico</button>
+    </div>
+
+    <section id="tab-pending" class="approval-tab-panel">
+      <div id="approvals-list"></div>
+    </section>
+
+    <section id="tab-approved" class="approval-tab-panel hidden">
+      <div id="history-list"></div>
+    </section>
+  </main>
+
+  <script src="js/common.js"></script>
+  <script>
+    fetch("/api/me").then((r) => r.json()).then((data) => {
+      if (data.approverDepartments?.length) {
+        document.getElementById("departments-text").textContent =
+          `Você é gestor de: ${data.approverDepartments.join(", ")}`;
+      }
+    });
+
+    document.querySelectorAll(".approval-tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".approval-tab-btn").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".approval-tab-panel").forEach((p) => p.classList.add("hidden"));
+        btn.classList.add("active");
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.remove("hidden");
+
+        if (btn.dataset.tab === "approved") loadHistory();
+      });
+    });
+  </script>
+  <script src="js/approvals.js"></script>
+</body>
+</html>

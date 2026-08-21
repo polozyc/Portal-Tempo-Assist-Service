@@ -1,0 +1,34 @@
+{
+  "name": "tempo-assist-servicedesk",
+  "version": "1.0.0",
+  "description": "Service Desk Tempo Assist: automacao Outlook -> Jira + controle de estoque do laboratorio",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "hash-password": "node scripts/hash-password.js",
+    "smoke-test": "node scripts/smoke-test.js",
+    "test-ldap": "node scripts/test-ldap.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "bcryptjs": "^3.0.3",
+    "connect-pg-simple": "^10.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^8.6.2",
+    "express-session": "^1.19.0",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.3.0",
+    "imapflow": "^1.7.1",
+    "ldapts": "^9.0.0",
+    "mailparser": "^3.9.15",
+    "node-cron": "^3.0.3",
+    "pg": "^8.23.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

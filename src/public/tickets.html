@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Tempo Assist — Abrir Chamado</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1 class="brand"><img src="img/logo.png" alt="Tempo Assist" class="brand-logo" /><span>Tempo Assist — Chamados</span></h1>
+    <nav>
+      <a href="/hub.html" class="tab-btn">← Voltar ao Hub</a>
+      <button id="logout-btn" class="tab-btn" style="margin-left: auto; background: rgba(255,255,255,0.08);">Sair</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="tab-panel">
+      <h2>Abrir chamado no service desk</h2>
+      <form id="ticket-form">
+        <label>Seu nome <input type="text" id="ticket-name" required /></label>
+        <label>Seu e-mail <input type="email" id="ticket-email" required /></label>
+        <label>
+          Setor
+          <select id="ticket-department">
+            <option value="">Selecione...</option>
+          </select>
+        </label>
+        <label style="flex-basis: 100%;">
+          Tipo de solicitação
+          <select id="ticket-request-type">
+            <option value="">Carregando...</option>
+          </select>
+        </label>
+        <label style="flex-basis: 100%;">Assunto <input type="text" id="ticket-subject" required /></label>
+        <label style="flex-basis: 100%;">
+          Descrição
+          <textarea id="ticket-description" rows="5" placeholder="Descreva o problema ou solicitação"></textarea>
+        </label>
+        <label style="flex-basis: 100%; flex-direction: row; align-items: center; gap: 8px;">
+          <input type="checkbox" id="ticket-requires-approval" style="width: auto;" />
+          Este chamado precisa do "de acordo" do gestor do setor antes de ir para a fila
+        </label>
+        <button type="submit">Abrir chamado</button>
+      </form>
+      <div id="ticket-feedback" class="feedback"></div>
+    </section>
+  </main>
+
+  <!-- Modal exibido quando o assunto do chamado exige "de acordo" -->
+  <div id="approval-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h2 id="approval-modal-title">Este chamado precisa de "de acordo"</h2>
+
+      <p class="modal-text">
+        Pela política da empresa, solicitações deste tipo só vão para a fila
+        depois da aprovação de um responsável.
+      </p>
+
+      <div class="modal-section">
+        <span class="modal-label">Identificamos:</span>
+        <ul id="approval-matches"></ul>
+      </div>
+
+      <div class="modal-section">
+        <label style="width: 100%;">
+          Encaminhar o de acordo para
+          <select id="approval-approver"></select>
+        </label>
+        <p id="approval-role-hint" class="modal-hint"></p>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="approval-cancel" class="btn-secondary">Cancelar</button>
+        <button type="button" id="approval-proceed-anyway" class="btn-secondary hidden">
+          Abrir sem aprovação
+        </button>
+        <button type="button" id="approval-confirm" class="btn-primary">
+          Enviar para aprovação
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/tickets.js"></script>
+</body>
+</html>

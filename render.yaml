@@ -1,0 +1,65 @@
+# Blueprint do Render — cria o serviço já configurado a partir do repositório.
+#
+# No Render: New > Blueprint > conecte este repositório.
+# As variáveis marcadas com sync:false NÃO ficam no Git: você preenche
+# cada uma no painel do Render, na aba Environment.
+services:
+  - type: web
+    name: tempo-assist-servicedesk
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # O Render coloca um proxy na frente do app; sem isso os cookies
+      # "secure" não são enviados e o login não funciona.
+      - key: TRUST_PROXY
+        value: "true"
+
+      # Gerado automaticamente pelo Render — não precisa preencher.
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: INTERNAL_API_TOKEN
+        generateValue: true
+
+      # Autenticação: no Render use "local".
+      # O modo "ldap" exige rede interna da empresa e não funciona na nuvem.
+      - key: AUTH_PROVIDER
+        value: local
+
+      # ----- Preencher no painel do Render -----
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+
+      - key: MASTER_USERNAME
+        sync: false
+      - key: MASTER_PASSWORD # hash bcrypt: npm run hash-password -- "senha"
+        sync: false
+      - key: EXTRA_USERS
+        sync: false
+
+      - key: DEPARTMENT_APPROVERS
+        sync: false
+      - key: APPROVAL_ROLES
+        sync: false
+
+      - key: JIRA_BASE_URL
+        sync: false
+      - key: JIRA_EMAIL
+        sync: false
+      - key: JIRA_API_TOKEN
+        sync: false
+      - key: JIRA_SERVICE_DESK_ID
+        sync: false
+      - key: JIRA_REQUEST_TYPE_ID
+        sync: false
+
+      - key: ENABLE_EMAIL_SYNC
+        value: "false"

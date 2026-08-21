@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Tempo Assist — Meus Chamados</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+<style>
+  .ticket-card {
+    background: white; border-radius: 8px; padding: 16px 18px; margin-bottom: 12px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); border: 1px solid #eee;
+  }
+  .ticket-card h3 { margin: 0 0 4px; font-size: 15px; }
+  .ticket-card .meta { font-size: 13px; color: #666; margin-bottom: 8px; }
+  .status-badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+  .status-PENDING { background: #fff4e5; color: #a35b00; }
+  .status-APPROVED, .status-SENT { background: #e6f4ea; color: #1e7d34; }
+  .status-REJECTED { background: #fdecea; color: #c5221f; }
+  .ticket-link { display: inline-block; margin-top: 8px; font-size: 13px; color: #0b3d91; text-decoration: none; font-weight: 600; }
+  .ticket-link:hover { text-decoration: underline; }
+  .rejection-note { font-size: 13px; color: #c5221f; margin-top: 6px; }
+  .empty-state { color: #666; text-align: center; padding: 40px 0; }
+</style>
+</head>
+<body>
+  <header>
+    <h1 class="brand"><img src="img/logo.png" alt="Tempo Assist" class="brand-logo" /><span>Tempo Assist — Meus Chamados</span></h1>
+    <nav>
+      <a href="/hub.html" class="tab-btn">← Voltar ao Hub</a>
+      <button id="logout-btn" class="tab-btn" style="margin-left: auto; background: rgba(255,255,255,0.08);">Sair</button>
+    </nav>
+  </header>
+
+  <main>
+    <div id="tickets-list"></div>
+  </main>
+
+  <script src="js/common.js"></script>
+  <script src="js/my-tickets.js"></script>
+</body>
+</html>
