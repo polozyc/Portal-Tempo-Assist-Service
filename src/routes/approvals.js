@@ -8,10 +8,14 @@ const { AppError, asyncHandler } = require("../middleware/errorHandler");
 
 const router = express.Router();
 
-function buildDescription({ requesterName, department, description, approver, decisionNotes }) {
+/**
+ * Acrescenta o registro do "de acordo" ao chamado.
+ *
+ * A descrição que chega aqui já traz solicitante e setor — repeti-los
+ * neste cabeçalho deixava a mesma informação duas vezes no chamado.
+ */
+function buildDescription({ description, approver, decisionNotes }) {
   return [
-    requesterName ? `Solicitante: ${requesterName}` : null,
-    department ? `Setor: ${department}` : null,
     `De acordo: ${approver} em ${new Date().toLocaleString("pt-BR")}`,
     decisionNotes ? `Observação do gestor: ${decisionNotes}` : null,
     "",
@@ -127,8 +131,6 @@ router.post(
       const jiraResponse = await createServiceDeskRequest({
         subject: ticket.subject,
         body: buildDescription({
-          requesterName: ticket.requester_name,
-          department: ticket.department,
           description: ticket.description,
           approver: req.session.user,
           decisionNotes: notes,

@@ -152,11 +152,6 @@ router.post(
       c.descricao,
       c.observacao ? `\nObservação: ${c.observacao}` : null,
       "",
-      "CLASSIFICAÇÃO",
-      `Natureza: ${c.categoria === "incidente" ? "Incidente" : "Solicitação"}`,
-      `Urgência: ${c.urgencia || "não definida"}`,
-      c.regraAprovacao ? `De acordo necessário: ${c.regraAprovacao}` : null,
-      "",
       `Aberto pelo assistente de IA, a pedido de ${req.session.user}.`,
     ]
       .filter((l) => l !== null)
