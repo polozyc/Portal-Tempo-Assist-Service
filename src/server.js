@@ -18,6 +18,7 @@ const ticketRoutes = require("./routes/tickets");
 const authRoutes = require("./routes/auth");
 const approvalRoutes = require("./routes/approvals");
 const myTicketsRoutes = require("./routes/myTickets");
+const chatRoutes = require("./routes/chat");
 
 const {
   requireAuthApi,
@@ -151,6 +152,7 @@ const sendPage = (file) => (req, res) => res.sendFile(path.join(publicDir, file)
 app.get("/hub.html", requireAuthPage, sendPage("hub.html"));
 app.get("/tickets.html", requireAuthPage, sendPage("tickets.html"));
 app.get("/my-tickets.html", requireAuthPage, sendPage("my-tickets.html"));
+app.get("/chat.html", requireAuthPage, sendPage("chat.html"));
 app.get("/inventory.html", requireAuthPage, requireInventoryAccessPage, sendPage("inventory.html"));
 app.get("/approvals.html", requireAuthPage, requireApproverAccessPage, sendPage("approvals.html"));
 
@@ -171,6 +173,7 @@ app.use("/api/tickets", apiLimiter, requireAuthApi, ticketRoutes);
 app.use("/api/inventory", apiLimiter, requireAuthApi, requireInventoryAccessApi, inventoryRoutes);
 app.use("/api/approvals", apiLimiter, requireAuthApi, requireApproverAccessApi, approvalRoutes);
 app.use("/api/my-tickets", apiLimiter, requireAuthApi, myTicketsRoutes);
+app.use("/api/chat", apiLimiter, requireAuthApi, chatRoutes);
 
 // ---------- Sincronização de e-mail (token de máquina, não sessão) ----------
 function requireInternalToken(req, res, next) {

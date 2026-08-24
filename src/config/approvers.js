@@ -119,6 +119,49 @@ function listAllApprovers() {
   return [...new Set([...porSetor, ...porPapel])];
 }
 
+/**
+ * Descreve cada aprovador com o que ele pode aprovar.
+ *
+ * A tela de escolha precisa disso: uma lista de logins soltos não ajuda
+ * ninguém a decidir para quem encaminhar.
+ *
+ * Quando "papelDesejado" é informado, quem exerce aquele papel vem
+ * marcado como recomendado e aparece primeiro.
+ */
+function listApproversDetailed(papelDesejado = null) {
+  const porSetor = buildApproverMap();
+  const porPapel = buildRoleMap();
+
+  const mapa = new Map();
+
+  function garantir(username) {
+    if (!mapa.has(username)) {
+      mapa.set(username, { username, papeis: [], setores: [], recomendado: false });
+    }
+    return mapa.get(username);
+  }
+
+  for (const { department, username } of porSetor.values()) {
+    garantir(username).setores.push(department);
+  }
+
+  for (const { role, usuarios } of porPapel.values()) {
+    for (const u of usuarios) {
+      const item = garantir(u);
+      item.papeis.push(role);
+      if (papelDesejado && role.toLowerCase() === String(papelDesejado).toLowerCase()) {
+        item.recomendado = true;
+      }
+    }
+  }
+
+  // Recomendados primeiro; depois em ordem alfabética.
+  return [...mapa.values()].sort((a, b) => {
+    if (a.recomendado !== b.recomendado) return a.recomendado ? -1 : 1;
+    return a.username.localeCompare(b.username);
+  });
+}
+
 module.exports = {
   getApproverForDepartment,
   isApproverUsername,
@@ -126,4 +169,5 @@ module.exports = {
   listDepartments,
   usersForRole,
   listAllApprovers,
+  listApproversDetailed,
 };

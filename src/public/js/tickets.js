@@ -1,7 +1,6 @@
 const form = document.getElementById("ticket-form");
 const submitBtn = form.querySelector('button[type="submit"]');
 const departmentSelect = document.getElementById("ticket-department");
-const approvalCheckbox = document.getElementById("ticket-requires-approval");
 const requestTypeSelect = document.getElementById("ticket-request-type");
 
 // ---------- Carrega os tipos de solicitação do Jira ----------
@@ -64,11 +63,6 @@ const requestTypeSelect = document.getElementById("ticket-request-type");
       departmentSelect.appendChild(opt);
     });
 
-    if (!departments.length) {
-      approvalCheckbox.disabled = true;
-      approvalCheckbox.parentElement.title =
-        "Nenhum setor com gestor configurado pelo administrador.";
-    }
   } catch {
     // Se a lista não carregar, deixa o campo utilizável mesmo assim.
     const opt = document.createElement("option");
@@ -86,7 +80,6 @@ const modalApprover = document.getElementById("approval-approver");
 const modalRoleHint = document.getElementById("approval-role-hint");
 const btnCancelar = document.getElementById("approval-cancel");
 const btnConfirmar = document.getElementById("approval-confirm");
-const btnSemAprovacao = document.getElementById("approval-proceed-anyway");
 
 function abrirModal(deteccao) {
   // Lista as regras que dispararam
@@ -144,12 +137,9 @@ function abrirModal(deteccao) {
     ? "Alguns papeis nao tem aprovador configurado; escolha entre os disponiveis."
     : "";
 
-  // Regras "quando aplicavel" sao sugestao: permitimos seguir sem aprovacao.
-  const apenasSugestao = !deteccao.requiresApproval && deteccao.suggested;
-  modalTitle.textContent = apenasSugestao
-    ? 'Este chamado pode precisar de "de acordo"'
-    : 'Este chamado precisa de "de acordo"';
-  btnSemAprovacao.classList.toggle("hidden", !apenasSugestao);
+  // Se o popup apareceu, a aprovacao e obrigatoria: nao existe caminho
+  // para abrir o chamado sem o de acordo.
+  modalTitle.textContent = 'Este chamado precisa de "de acordo"';
 
   modal.classList.remove("hidden");
 }
@@ -174,7 +164,6 @@ function coletarPayload() {
     department: departmentSelect.value.trim(),
     subject: document.getElementById("ticket-subject").value.trim(),
     description: document.getElementById("ticket-description").value.trim(),
-    requiresApproval: approvalCheckbox.checked,
     requestTypeId: requestTypeSelect.value || undefined,
   };
 }
@@ -210,7 +199,6 @@ async function enviarChamado(payload) {
     }
 
     form.reset();
-    toggleCamposAprovacao();
   } catch (err) {
     showFeedback(feedback, err.message, "error");
   } finally {
@@ -227,27 +215,12 @@ btnConfirmar.addEventListener("click", () => {
   enviarChamado(payload);
 });
 
-btnSemAprovacao.addEventListener("click", () => {
-  const payload = coletarPayload();
-  payload.requiresApproval = false;
-  enviarChamado(payload);
-});
-
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const feedback = document.getElementById("ticket-feedback");
   const payload = coletarPayload();
 
-  // Se o usuario ja marcou "precisa de de acordo", segue o fluxo por setor.
-  if (payload.requiresApproval) {
-    if (!payload.department) {
-      showFeedback(feedback, "Selecione o setor para solicitar aprovacao do gestor.", "error");
-      return;
-    }
-    return enviarChamado(payload);
-  }
-
-  // Caso contrario, verifica se o assunto cai numa regra de aprovacao.
+  // A necessidade de "de acordo" e decidida pela deteccao automatica.
   try {
     const res = await fetch(`${API}/tickets/check-approval`, {
       method: "POST",
@@ -261,7 +234,9 @@ form.addEventListener("submit", async (e) => {
 
     if (res.ok) {
       const deteccao = await res.json();
-      if (deteccao.requiresApproval || deteccao.suggested) {
+      // Qualquer regra detectada exige aprovacao — inclusive as marcadas
+      // como "quando aplicavel", que antes eram apenas sugestao.
+      if (deteccao.matches && deteccao.matches.length > 0) {
         abrirModal(deteccao);
         return;
       }
@@ -272,10 +247,3 @@ form.addEventListener("submit", async (e) => {
 
   enviarChamado(payload);
 });
-
-// Esconde o seletor de setor quando ele nao e necessario
-function toggleCamposAprovacao() {
-  const marcado = approvalCheckbox.checked;
-  departmentSelect.closest("label").style.opacity = marcado ? "1" : "";
-}
-approvalCheckbox.addEventListener("change", toggleCamposAprovacao);

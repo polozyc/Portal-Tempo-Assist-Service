@@ -115,6 +115,10 @@ async function initSchema() {
     -- "Usuário - Criação"). Guardamos para auditoria: permite explicar
     -- depois por que aquele chamado exigiu aprovação.
     ALTER TABLE tickets   ADD COLUMN IF NOT EXISTS approval_reason TEXT;
+    -- Decisão completa do agente de IA (categoria, urgência, raciocínio).
+    -- Guardar isso permite auditar POR QUE o agente decidiu daquele jeito —
+    -- sem esse registro, a triagem automática vira uma caixa-preta.
+    ALTER TABLE processed_emails ADD COLUMN IF NOT EXISTS agent_decision JSONB;
   `);
 }
 

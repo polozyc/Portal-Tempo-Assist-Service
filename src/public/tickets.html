@@ -38,10 +38,6 @@
           Descrição
           <textarea id="ticket-description" rows="5" placeholder="Descreva o problema ou solicitação"></textarea>
         </label>
-        <label style="flex-basis: 100%; flex-direction: row; align-items: center; gap: 8px;">
-          <input type="checkbox" id="ticket-requires-approval" style="width: auto;" />
-          Este chamado precisa do "de acordo" do gestor do setor antes de ir para a fila
-        </label>
         <button type="submit">Abrir chamado</button>
       </form>
       <div id="ticket-feedback" class="feedback"></div>
@@ -73,9 +69,6 @@
 
       <div class="modal-actions">
         <button type="button" id="approval-cancel" class="btn-secondary">Cancelar</button>
-        <button type="button" id="approval-proceed-anyway" class="btn-secondary hidden">
-          Abrir sem aprovação
-        </button>
         <button type="button" id="approval-confirm" class="btn-primary">
           Enviar para aprovação
         </button>

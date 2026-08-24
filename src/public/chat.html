@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Tempo Assist — Pegasus</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+<style>
+  main { max-width: 720px; }
+
+  /* Assinatura do assistente, no canto da janela de conversa */
+  .conversa-wrap { position: relative; }
+  .selo-pegasus {
+    position: absolute; top: 12px; right: 16px; z-index: 2;
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(255,255,255,.92); backdrop-filter: blur(4px);
+    border: 1px solid #e5e9ef; border-radius: 999px;
+    padding: 5px 12px 5px 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    pointer-events: none;
+  }
+  .selo-pegasus svg { display: block; }
+  .selo-pegasus b {
+    font-size: 12.5px; font-weight: 600; letter-spacing: -.01em; color: #0b3d91;
+  }
+  .selo-pegasus i {
+    font-style: normal; font-size: 10.5px; color: #8996a3;
+  }
+
+  /* Painel de escolha do gestor */
+  .escolha {
+    background: white; border: 1px solid #f0dcc0; border-radius: 10px;
+    padding: 16px; margin: 4px 0;
+  }
+  .escolha h4 { margin: 0 0 3px; font-size: 14px; color: #a35b00; }
+  .escolha .dica { margin: 0 0 12px; font-size: 12.5px; color: #666; line-height: 1.45; }
+  .escolha input[type="search"] {
+    width: 100%; padding: 9px 12px; border: 1px solid #ccd5dd; border-radius: 8px;
+    font-family: inherit; font-size: 13.5px; margin-bottom: 10px;
+  }
+  .escolha input[type="search"]:focus { outline: none; border-color: #11a7e0; }
+
+  .lista-aprovadores { max-height: 210px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .aprovador {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 100%; text-align: left;
+    background: #f7f9fb; border: 1px solid #e5e9ef; border-radius: 8px;
+    padding: 9px 12px; cursor: pointer; font-family: inherit;
+    transition: border-color .12s, background .12s;
+  }
+  .aprovador:hover { background: white; border-color: #11a7e0; }
+  .aprovador .nome { font-size: 13.5px; font-weight: 500; color: #1b1f23; }
+  .aprovador .detalhe { display: block; font-size: 11.5px; color: #7a8894; margin-top: 1px; }
+  .aprovador .recomendado {
+    font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    background: #edf9f2; color: #0b7a3d; border: 1px solid #c4e8d3; white-space: nowrap;
+  }
+  .sem-resultado { font-size: 12.5px; color: #8996a3; padding: 10px 2px; }
+
+  /* Duas colunas: conversa e ficha que se preenche sozinha */
+  .chat-layout { display: grid; grid-template-columns: minmax(0,1fr) 260px; gap: 16px; }
+
+  .ficha {
+    background: white; border: 1px solid #e5e9ef; border-radius: 10px;
+    padding: 16px; align-self: start; position: sticky; top: 16px;
+  }
+  .ficha h3 { margin: 0 0 2px; font-size: 14px; color: #0b3d91; }
+  .ficha .sub { margin: 0 0 14px; font-size: 12px; color: #666; line-height: 1.4; }
+  .ficha .secao {
+    margin: 12px 0 8px; font-size: 10px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: #0b3d91;
+  }
+  .ficha .secao:first-of-type { margin-top: 0; }
+  .ficha .campo { margin-bottom: 10px; }
+  .ficha .campo b {
+    display: block; font-size: 10px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: #7a8894; margin-bottom: 2px;
+  }
+  .ficha .campo span { font-size: 13px; color: #1b1f23; }
+  .ficha .campo span.vazio { color: #b3bfc9; font-style: italic; }
+  .ficha .campo span.novo { animation: preenche .5s ease-out; }
+  @keyframes preenche { from { background: rgba(15,212,94,.2); } to { background: transparent; } }
+  .ficha .opc { font-weight: 400; text-transform: none; letter-spacing: 0; color: #b3bfc9; }
+
+  #raciocinio {
+    margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e5e9ef;
+    font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.55; color: #667;
+  }
+  #raciocinio b { display:block; color:#11a7e0; font-size:9.5px; letter-spacing:.1em; margin-bottom:4px; }
+
+  @media (max-width: 820px) {
+    .chat-layout { grid-template-columns: 1fr; }
+    .ficha { position: static; order: -1; }
+  }
+
+  .chat-janela {
+    background: #eceff3;
+    border-radius: 12px;
+    height: 60vh;
+    min-height: 380px;
+    overflow-y: auto;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .balao {
+    max-width: 78%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .balao.agente {
+    background: white;
+    color: #1b1f23;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .balao.usuario {
+    background: #0b3d91;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .balao.sistema {
+    background: #e6f4ea;
+    color: #1e7d34;
+    align-self: center;
+    text-align: center;
+    font-size: 13px;
+    max-width: 92%;
+  }
+  .balao.erro {
+    background: #fdecea;
+    color: #c5221f;
+    align-self: center;
+    text-align: center;
+    font-size: 13px;
+  }
+  .balao a { color: inherit; font-weight: 600; }
+
+  /* Indicador de "digitando" */
+  .digitando { display: flex; gap: 4px; align-items: center; padding: 14px; }
+  .digitando span {
+    width: 7px; height: 7px; border-radius: 50%; background: #99a;
+    animation: pulsa 1.2s infinite ease-in-out;
+  }
+  .digitando span:nth-child(2) { animation-delay: 0.15s; }
+  .digitando span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes pulsa {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-3px); }
+  }
+
+  .chat-entrada { display: flex; gap: 10px; margin-top: 14px; }
+  .chat-entrada textarea {
+    flex: 1;
+    resize: none;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 22px;
+    font-family: inherit;
+    font-size: 14px;
+    max-height: 120px;
+  }
+  .chat-entrada button {
+    background: #0b3d91; color: white; border: none;
+    padding: 0 22px; border-radius: 22px; cursor: pointer; font-size: 14px;
+  }
+  .chat-entrada button:disabled { opacity: 0.5; cursor: default; }
+
+  .chat-dica { font-size: 12px; color: #666; margin: 8px 0 0; }
+  .chat-acoes { display: flex; justify-content: space-between; align-items: center; }
+  .btn-reiniciar {
+    background: none; border: none; color: #0b3d91;
+    font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1 class="brand">
+      <img src="img/logo.png" alt="Tempo Assist" class="brand-logo" />
+      <span>Tempo Assist — Pegasus</span>
+    </h1>
+    <nav>
+      <a href="/hub.html" class="tab-btn">← Voltar ao Hub</a>
+      <button id="logout-btn" class="tab-btn" style="margin-left: auto; background: rgba(255,255,255,0.08);">Sair</button>
+    </nav>
+  </header>
+
+  <main>
+   <div class="chat-layout">
+    <div class="conversa-wrap">
+      <div class="selo-pegasus" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+          <defs>
+            <linearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#11A7E0"/>
+              <stop offset="100%" stop-color="#0FD45E"/>
+            </linearGradient>
+          </defs>
+          <!-- asa -->
+          <path d="M4 17c3.4-1.1 6.3-3.2 8.4-6.2.5 2.6.2 5-1 7.2 2.6-.9 4.8-2.5 6.6-4.7-.1 2.4-.9 4.5-2.3 6.3" stroke="url(#pg)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- cabeça e pescoço do cavalo -->
+          <path d="M17 26c-.4-3.6.6-6.6 3-9 1.4-1.4 3-2.3 5-2.8l3-3.4-.5 3.4 2.2-.9-1.6 2.6c.5 3-.5 5.5-2.9 7.4" stroke="#0A2540" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="24.4" cy="15.6" r=".95" fill="#0A2540"/>
+        </svg>
+        <span>
+          <b>Pegasus</b><br><i>assistente de IA</i>
+        </span>
+      </div>
+    <div id="chat-janela" class="chat-janela"></div>
+
+    <div class="chat-entrada">
+      <textarea id="chat-input" rows="1" placeholder="Descreva o que você precisa..." autofocus></textarea>
+      <button id="chat-enviar">Enviar</button>
+    </div>
+
+    <div class="chat-acoes">
+      <p class="chat-dica">O assistente vai fazer algumas perguntas e abrir o chamado para você.</p>
+      <button id="chat-reiniciar" class="btn-reiniciar">Começar de novo</button>
+    </div>
+    </div>
+
+    <aside class="ficha">
+      <h3>Ficha do chamado</h3>
+      <p class="sub">Preenchida conforme a conversa avança.</p>
+
+      <p class="secao">Solicitante</p>
+      <div class="campo" data-campo="solicitanteNome"><b>Nome</b><span class="vazio">aguardando</span></div>
+      <div class="campo" data-campo="solicitanteEmail"><b>E-mail</b><span class="vazio">aguardando</span></div>
+      <div class="campo" data-campo="setor"><b>Setor</b><span class="vazio">aguardando</span></div>
+      <div class="campo" data-campo="horarioTrabalho"><b>Horário</b><span class="vazio">aguardando</span></div>
+      <div class="campo" data-campo="maquina"><b>Máquina <span class="opc">opcional</span></b><span class="vazio">—</span></div>
+      <div class="campo" data-campo="anydesk"><b>AnyDesk <span class="opc">opcional</span></b><span class="vazio">—</span></div>
+
+      <p class="secao">Chamado</p>
+      <div class="campo" data-campo="titulo"><b>Assunto</b><span class="vazio">aguardando</span></div>
+      <div class="campo" data-campo="categoria"><b>Natureza</b><span class="vazio">aguardando</span></div>
+      <div class="campo" data-campo="urgencia"><b>Urgência</b><span class="vazio">aguardando</span></div>
+      <div class="campo" data-campo="aprovacao"><b>De acordo</b><span class="vazio">aguardando</span></div>
+      <div class="campo" data-campo="observacao"><b>Observação <span class="opc">opcional</span></b><span class="vazio">—</span></div>
+
+      <div id="raciocinio" hidden><b>POR QUE</b><span id="raciocinio-texto"></span></div>
+    </aside>
+   </div>
+  </main>
+
+  <script src="js/common.js"></script>
+  <script src="js/chat.js"></script>
+</body>
+</html>

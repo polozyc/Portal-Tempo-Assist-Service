@@ -146,15 +146,15 @@ router.post(
       requestTypeName: tipoNome,
     });
 
-    if (deteccao.requiresApproval && !requiresApproval) {
-      const assuntos = deteccao.matches
-        .filter((m) => !m.conditional)
-        .map((m) => m.label)
-        .join(", ");
+    // Qualquer regra detectada torna o "de acordo" obrigatório — inclusive
+    // as marcadas como "quando aplicável". A decisão é do algoritmo: não há
+    // caminho para abrir o chamado sem aprovação depois que uma regra casa.
+    if (deteccao.matches.length > 0 && !requiresApproval) {
+      const assuntos = deteccao.matches.map((m) => m.label).join(", ");
 
       const erro = new AppError(
         `Este chamado exige "de acordo" antes de ir para a fila (${assuntos}). ` +
-          `Selecione o aprovador para encaminhar a solicitacao.`,
+          `Selecione o aprovador para encaminhar a solicitação.`,
         400
       );
       erro.approvalRequired = deteccao;
