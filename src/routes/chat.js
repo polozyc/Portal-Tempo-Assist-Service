@@ -3,13 +3,52 @@ const { body } = require("express-validator");
 
 const { pool } = require("../db");
 const { conversar, isAiEnabled } = require("../services/aiAgent");
-const { createServiceDeskRequest, getRequestTypeGroups } = require("../services/jiraClient");
+const { createServiceDeskRequest, getRequestTypeGroups, anexarArquivos } = require("../services/jiraClient");
 const { APPROVAL_RULES } = require("../config/approvalRules");
 const { usersForRole, listAllApprovers, listApproversDetailed } = require("../config/approvers");
 const { validate } = require("../middleware/validate");
 const { AppError, asyncHandler } = require("../middleware/errorHandler");
 
+const multer = require("multer");
+const os = require("os");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+
 const router = express.Router();
+
+// Arquivos ficam em disco temporário até o chamado ser criado. Guardá-los
+// em memória arriscaria estourar a RAM do servidor com poucos uploads.
+const LIMITE_ARQUIVOS = 5;
+const LIMITE_BYTES = 10 * 1024 * 1024; // 10 MB por arquivo
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (req, file, cb) => {
+      const seguro = crypto.randomBytes(8).toString("hex");
+      cb(null, `tino-${seguro}${path.extname(file.originalname).slice(0, 10)}`);
+    },
+  }),
+  limits: { fileSize: LIMITE_BYTES, files: LIMITE_ARQUIVOS },
+  fileFilter: (req, file, cb) => {
+    // Executáveis e scripts não têm por que virar anexo de chamado, e
+    // aceitar esses formatos transformaria o service desk num vetor de
+    // distribuição de arquivo malicioso.
+    const proibidos = /\.(exe|bat|cmd|com|scr|msi|ps1|vbs|js|jar|sh)$/i;
+    if (proibidos.test(file.originalname)) {
+      return cb(new Error(`Arquivos do tipo "${path.extname(file.originalname)}" não são aceitos.`));
+    }
+    cb(null, true);
+  },
+});
+
+/** Remove do disco os arquivos de uma conversa. */
+function limparArquivos(lista) {
+  for (const arq of lista || []) {
+    fs.unlink(arq.path, () => {});
+  }
+}
 
 const MAX_TURNOS = 40; // limite de segurança para conversas muito longas
 
@@ -45,14 +84,75 @@ router.get("/", (req, res) => {
   res.json({
     disponivel: isAiEnabled(),
     historico: req.session.chatHistorico || [],
+    arquivos: (req.session.chatAnexos || []).map((a) => ({
+      nome: a.originalname,
+      tamanho: a.size,
+    })),
   });
 });
 
 // ---------- DELETE /api/chat ----------
 // Recomeça a conversa do zero.
 router.delete("/", (req, res) => {
+  limparArquivos(req.session.chatAnexos);
+  req.session.chatAnexos = [];
   req.session.chatHistorico = [];
   res.json({ ok: true });
+});
+
+// ---------- POST /api/chat/anexo ----------
+// Guarda os arquivos junto da conversa; eles só sobem para o Jira quando
+// o chamado é criado.
+router.post("/anexo", (req, res) => {
+  upload.array("arquivos", LIMITE_ARQUIVOS)(req, res, (err) => {
+    if (err) {
+      const mensagem =
+        err.code === "LIMIT_FILE_SIZE"
+          ? "Cada arquivo pode ter no máximo 10 MB."
+          : err.code === "LIMIT_FILE_COUNT"
+          ? `No máximo ${LIMITE_ARQUIVOS} arquivos por chamado.`
+          : err.message;
+      return res.status(400).json({ error: mensagem });
+    }
+
+    const atuais = req.session.chatAnexos || [];
+    const novos = (req.files || []).map((f) => ({
+      path: f.path,
+      originalname: f.originalname,
+      mimetype: f.mimetype,
+      size: f.size,
+    }));
+
+    if (atuais.length + novos.length > LIMITE_ARQUIVOS) {
+      limparArquivos(novos);
+      return res
+        .status(400)
+        .json({ error: `No máximo ${LIMITE_ARQUIVOS} arquivos por chamado.` });
+    }
+
+    req.session.chatAnexos = [...atuais, ...novos];
+
+    res.json({
+      arquivos: req.session.chatAnexos.map((a) => ({
+        nome: a.originalname,
+        tamanho: a.size,
+      })),
+    });
+  });
+});
+
+// ---------- DELETE /api/chat/anexo/:indice ----------
+router.delete("/anexo/:indice", (req, res) => {
+  const lista = req.session.chatAnexos || [];
+  const i = Number(req.params.indice);
+
+  if (Number.isInteger(i) && lista[i]) {
+    limparArquivos([lista[i]]);
+    lista.splice(i, 1);
+    req.session.chatAnexos = lista;
+  }
+
+  res.json({ arquivos: lista.map((a) => ({ nome: a.originalname, tamanho: a.size })) });
 });
 
 // ---------- POST /api/chat ----------
@@ -95,6 +195,9 @@ router.post(
           email: req.session.email || null,
           setor: req.session.setor || null,
         },
+        // Sem isso o agente pediria "manda um print" para algo que a
+        // pessoa já anexou.
+        anexos: (req.session.chatAnexos || []).map((a) => a.originalname),
       });
     } catch (err) {
       // O agente tentou abrir sem os dados obrigatórios. Para a pessoa,
@@ -165,6 +268,7 @@ router.post(
         chamado: c,
         descricao: descricaoCompleta,
         raciocinio: turno.raciocinio || null,
+        anexos: req.session.chatAnexos || [],
       };
 
       return res.json({
@@ -189,6 +293,17 @@ router.post(
 
     const issueKey = jiraResponse.issueKey || jiraResponse.issueId;
     const link = jiraResponse._links?.web || null;
+
+    // Anexos vão depois da criação: o Jira não aceita arquivo no mesmo
+    // pedido que cria o chamado.
+    const anexos = req.session.chatAnexos || [];
+    let anexados = 0;
+    if (anexos.length) {
+      const r = await anexarArquivos(issueKey, anexos);
+      anexados = r.anexados;
+      limparArquivos(anexos);
+      req.session.chatAnexos = [];
+    }
 
     await pool.query(
       `INSERT INTO tickets
@@ -218,6 +333,7 @@ router.post(
       pendenteAprovacao: false,
       issueKey,
       link,
+      anexados,
     });
   })
 );

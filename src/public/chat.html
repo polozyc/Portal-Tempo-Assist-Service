@@ -2,15 +2,15 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>Tempo Assist — Pegasus</title>
+<title>Tempo Assist — Tino</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="style.css" />
 <style>
   main { max-width: 720px; }
 
-  /* Ícone do Pegasus no cabeçalho. Fundo branco arredondado porque o
-     cabeçalho é azul-escuro e o traço do ícone é escuro. */
-  .pegasus-icone {
+  /* Logo da Tempo no cabeçalho. Fundo branco arredondado para dar
+     contraste sobre o azul-escuro. */
+  .marca-icone {
     width: 36px; height: 36px;
     flex-shrink: 0;
     background: white;
@@ -149,36 +149,114 @@
     30% { opacity: 1; transform: translateY(-3px); }
   }
 
-  .chat-entrada { display: flex; gap: 10px; margin-top: 14px; }
+  /* Anexos escolhidos, acima do campo de texto */
+  .lista-anexos { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+  .lista-anexos:empty { display: none; }
+  .anexo {
+    display: flex; align-items: center; gap: 7px;
+    background: #eef1f6; border: 1px solid #dde4ec; border-radius: 999px;
+    padding: 5px 6px 5px 12px; font-size: 12.5px; color: #33414d; max-width: 240px;
+  }
+  .anexo .nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .anexo .peso { color: #8996a3; font-size: 11px; flex-shrink: 0; }
+  .anexo button {
+    border: none; background: none; cursor: pointer; color: #8996a3;
+    font-size: 15px; line-height: 1; padding: 2px 5px; border-radius: 50%; flex-shrink: 0;
+  }
+  .anexo button:hover { background: #dde4ec; color: #c5221f; }
+
+  /* Barra de escrita: o clipe fica DENTRO do campo, como em mensageiros,
+     e o botão de enviar alinhado à direita. Regras específicas por id
+     para não colidir com estilos genéricos de button. */
+  .chat-entrada {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .campo-wrap {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    background: white;
+    border: 1px solid #ccd5dd;
+    border-radius: 24px;
+    padding: 5px 6px 5px 8px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .campo-wrap:focus-within {
+    border-color: #11a7e0;
+    box-shadow: 0 0 0 3px rgba(17, 167, 224, .13);
+  }
+
   .chat-entrada textarea {
     flex: 1;
     resize: none;
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 22px;
+    border: none;
+    outline: none;
+    background: none;
+    padding: 9px 4px;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 14.5px;
+    line-height: 1.4;
+    color: #1b1f23;
     max-height: 120px;
   }
-  .chat-entrada button {
-    background: #0b3d91; color: white; border: none;
-    padding: 0 22px; border-radius: 22px; cursor: pointer; font-size: 14px;
-  }
-  .chat-entrada button:disabled { opacity: 0.5; cursor: default; }
 
-  .chat-dica { font-size: 12px; color: #666; margin: 8px 0 0; }
-  .chat-acoes { display: flex; justify-content: space-between; align-items: center; }
-  .btn-reiniciar {
-    background: none; border: none; color: #0b3d91;
-    font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline;
+  /* Clipe: só o ícone, sem fundo. */
+  #btn-anexar {
+    width: 34px; height: 34px;
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    padding: 0;
+    color: #8996a3;
+    cursor: pointer;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    transition: color .15s, background .15s;
   }
+  #btn-anexar:hover { color: #0b3d91; background: #eef1f6; }
+  #btn-anexar:disabled { opacity: .4; cursor: default; }
+
+  /* Enviar: círculo com seta, alinhado ao campo. */
+  #chat-enviar {
+    width: 44px; height: 44px;
+    flex-shrink: 0;
+    border: none;
+    background: #0b3d91;
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background .15s, opacity .15s;
+  }
+  #chat-enviar:hover:not(:disabled) { background: #11a7e0; }
+  #chat-enviar:disabled { opacity: .45; cursor: default; }
+  #chat-enviar svg { transform: translateX(1px); }
+
+  .chat-dica { font-size: 12px; color: #7a8894; margin: 0; }
+  .chat-acoes {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .btn-reiniciar {
+    background: none; border: none; color: #0b3d91; white-space: nowrap;
+    font-size: 12.5px; cursor: pointer; padding: 4px 2px;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .btn-reiniciar:hover { color: #11a7e0; }
 </style>
 </head>
 <body>
   <header>
     <h1 class="brand">
-      <img src="img/pegasus.png" alt="" class="pegasus-icone" aria-hidden="true" />
-      <span>Tempo Assist — Pegasus</span>
+      <img src="img/logo.png" alt="" class="marca-icone" aria-hidden="true" />
+      <span>Tempo Assist — Tino</span>
     </h1>
     <nav>
       <a href="/hub.html" class="tab-btn">← Voltar ao Hub</a>
@@ -191,9 +269,27 @@
     <div>
     <div id="chat-janela" class="chat-janela"></div>
 
+    <div id="lista-anexos" class="lista-anexos"></div>
+
     <div class="chat-entrada">
-      <textarea id="chat-input" rows="1" placeholder="Descreva o que você precisa..." autofocus></textarea>
-      <button id="chat-enviar">Enviar</button>
+      <input type="file" id="input-arquivo" multiple hidden
+             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.log,.zip" />
+
+      <div class="campo-wrap">
+        <button id="btn-anexar" type="button" title="Anexar arquivo" aria-label="Anexar arquivo">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.4 11.05 12.25 20.2a5.5 5.5 0 0 1-7.78-7.78l9.2-9.19a3.67 3.67 0 0 1 5.18 5.18l-9.2 9.2a1.83 1.83 0 0 1-2.6-2.6l8.5-8.48"/>
+          </svg>
+        </button>
+        <textarea id="chat-input" rows="1" placeholder="Descreva o que você precisa..." autofocus></textarea>
+      </div>
+
+      <button id="chat-enviar" type="button" title="Enviar" aria-label="Enviar mensagem">
+        <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+          <path d="M3 20l18-8L3 4l4 8-4 8z" fill="currentColor"/>
+        </svg>
+      </button>
     </div>
 
     <div class="chat-acoes">

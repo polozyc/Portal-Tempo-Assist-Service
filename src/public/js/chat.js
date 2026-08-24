@@ -4,7 +4,7 @@ const btnEnviar = document.getElementById("chat-enviar");
 const btnReiniciar = document.getElementById("chat-reiniciar");
 
 const SAUDACAO =
-  "Olá! Sou o Pegasus, assistente do service desk. Me conta o que você " +
+  "Olá! Sou o Tino, assistente do service desk. Me conta o que você " +
   "precisa e eu abro o chamado para você.";
 
 function rolarParaFim() {
@@ -48,6 +48,8 @@ function mostrarDigitando() {
       btnEnviar.disabled = true;
       return;
     }
+
+    desenharAnexos(data.arquivos);
 
     if (data.historico?.length) {
       // Restaura a conversa (o usuário pode ter recarregado a página)
@@ -129,6 +131,64 @@ function limparFicha() {
   });
   document.getElementById("raciocinio").hidden = true;
 }
+
+// ---------- Anexos ----------
+const inputArquivo = document.getElementById("input-arquivo");
+const btnAnexar = document.getElementById("btn-anexar");
+const listaAnexos = document.getElementById("lista-anexos");
+
+function formatarTamanho(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function desenharAnexos(arquivos) {
+  listaAnexos.innerHTML = (arquivos || [])
+    .map(
+      (a, i) => `
+      <span class="anexo">
+        <span class="nome" title="${escapeHtml(a.nome)}">${escapeHtml(a.nome)}</span>
+        <span class="peso">${formatarTamanho(a.tamanho)}</span>
+        <button type="button" data-indice="${i}" aria-label="Remover ${escapeHtml(a.nome)}">&times;</button>
+      </span>`
+    )
+    .join("");
+
+  listaAnexos.querySelectorAll("button").forEach((b) => {
+    b.addEventListener("click", async () => {
+      const res = await fetch(`${API}/chat/anexo/${b.dataset.indice}`, { method: "DELETE" });
+      const data = await res.json();
+      desenharAnexos(data.arquivos);
+    });
+  });
+}
+
+btnAnexar.addEventListener("click", () => inputArquivo.click());
+
+inputArquivo.addEventListener("change", async () => {
+  if (!inputArquivo.files.length) return;
+
+  const form = new FormData();
+  for (const f of inputArquivo.files) form.append("arquivos", f);
+
+  btnAnexar.disabled = true;
+  try {
+    const res = await fetch(`${API}/chat/anexo`, { method: "POST", body: form });
+    const data = await res.json();
+
+    if (!res.ok) {
+      adicionarBalao(data.error || "Não consegui anexar o arquivo.", "erro");
+      return;
+    }
+    desenharAnexos(data.arquivos);
+  } catch {
+    adicionarBalao("Falha ao enviar o arquivo.", "erro");
+  } finally {
+    btnAnexar.disabled = false;
+    inputArquivo.value = ""; // permite reenviar o mesmo arquivo
+  }
+});
 
 // ---------- Escolha do gestor que vai aprovar ----------
 function montarEscolhaAprovador(data) {
@@ -282,8 +342,11 @@ async function enviar() {
         );
       } else {
         const link = safeUrl(data.link);
+        const anexos = data.anexados
+          ? `<br>${data.anexados} arquivo(s) anexado(s).`
+          : "";
         adicionarBalao(
-          `Chamado <strong>${escapeHtml(data.issueKey || "")}</strong> aberto com sucesso.` +
+          `Chamado <strong>${escapeHtml(data.issueKey || "")}</strong> aberto com sucesso.${anexos}` +
             (link
               ? `<br><a href="${link}" target="_blank" rel="noopener">Acompanhar no Jira</a>`
               : "") +
@@ -294,6 +357,7 @@ async function enviar() {
       }
 
       limparFicha();
+      desenharAnexos([]);
       adicionarBalao("Precisa de mais alguma coisa? É só me contar.", "agente");
     }
   } catch {
@@ -327,6 +391,7 @@ btnReiniciar.addEventListener("click", async () => {
   await fetch(`${API}/chat`, { method: "DELETE" });
   janela.innerHTML = "";
   limparFicha();
+  desenharAnexos([]);
   adicionarBalao(SAUDACAO, "agente");
   input.focus();
 });

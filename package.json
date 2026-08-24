@@ -21,10 +21,12 @@
     "express-rate-limit": "^8.6.2",
     "express-session": "^1.19.0",
     "express-validator": "^7.3.2",
+    "form-data": "^4.0.6",
     "helmet": "^8.3.0",
     "imapflow": "^1.7.1",
     "ldapts": "^9.0.0",
     "mailparser": "^3.9.15",
+    "multer": "^2.2.0",
     "node-cron": "^3.0.3",
     "pg": "^8.23.0"
   },

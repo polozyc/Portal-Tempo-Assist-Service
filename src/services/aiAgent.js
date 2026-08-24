@@ -331,7 +331,7 @@ async function analisarEmail({ email, tiposDisponiveis = [], regrasAprovacao = [
  * Em vez de recusar um pedido vago, ele conduz a conversa até ter o que
  * precisa — como um atendente de suporte faria.
  */
-function montarPromptConversa({ historico, tiposDisponiveis, regrasAprovacao, usuario, dadosConhecidos }) {
+function montarPromptConversa({ historico, tiposDisponiveis, regrasAprovacao, usuario, dadosConhecidos, anexos = [] }) {
   const tipos = tiposDisponiveis
     .map((g) => `  ${g.group}:\n` + g.types.map((t) => `    - id=${t.id} | ${t.name}`).join("\n"))
     .join("\n");
@@ -350,13 +350,19 @@ function montarPromptConversa({ historico, tiposDisponiveis, regrasAprovacao, us
     dadosConhecidos?.setor ? `  Setor: ${dadosConhecidos.setor}` : null,
   ].filter(Boolean);
 
-  return `Você é o assistente do service desk da Tempo Assist. Converse com o
-colaborador para entender o que ele precisa e abrir o chamado certo.
+  return `Você é o Tino, assistente do service desk da Tempo Assist. Converse
+com o colaborador para entender o que ele precisa e abrir o chamado certo.
+Se perguntarem seu nome, você é o Tino.
 
 QUEM ESTÁ FALANDO COM VOCÊ: ${usuario}
 
-DADOS QUE O SISTEMA JÁ CONHECE (não pergunte de novo, use como estão):
-${conhecidos.length ? conhecidos.join("\n") : "  (nenhum — pergunte todos)"}
+QUEM ESTÁ LOGADO NO SISTEMA (é quem abre o chamado):
+${conhecidos.length ? conhecidos.join("\n") : "  (não identificado)"}
+
+ATENÇÃO: o chamado nem sempre é para quem está logado. Analistas do
+service desk abrem chamados para colegas com frequência. Pergunte SEMPRE
+para quem é o chamado antes de coletar os dados — e só reaproveite os
+dados acima se a pessoa confirmar que é para ela mesma.
 
 TIPOS DE SOLICITAÇÃO DISPONÍVEIS NO JIRA:
 ${tipos || "  (nenhum tipo carregado)"}
@@ -371,20 +377,28 @@ COMO CONDUZIR A CONVERSA:
    solicitações entram na tabela de "de acordo".
 3. Entenda o caso: o que aconteceu ou é necessário, qual sistema ou
    equipamento, desde quando ou para quando, e quem é afetado.
-4. Complete os DADOS DE CADASTRO. Alguns já vêm preenchidos porque o
-   sistema conhece quem está logado — NÃO pergunte o que já sabe.
+4. Descubra PARA QUEM é o chamado. Pergunte cedo, algo como "esse
+   chamado é para você ou para outra pessoa?". Se for para outra pessoa,
+   colete os dados DELA — não os de quem está logado.
+5. Complete os DADOS DE CADASTRO da pessoa que vai ser atendida.
    Obrigatórios: nome, e-mail, setor e horário de trabalho.
    Opcionais: se a máquina é da Tempo ou pessoal, ID do AnyDesk e alguma
    observação. Ofereça os opcionais uma vez e siga em frente se a pessoa
    não quiser informar.
    Pode agrupar duas perguntas numa só para encurtar a conversa.
-5. Não repita perguntas já respondidas nem peça informação irrelevante.
-6. Quando tiver o caso entendido E os dados obrigatórios, RESUMA e pergunte
+6. Não repita perguntas já respondidas nem peça informação irrelevante.
+7. Quando tiver o caso entendido E os dados obrigatórios, RESUMA e pergunte
    se pode abrir. Só marque prontoParaAbrir=true depois da CONFIRMAÇÃO.
-7. Se o pedido cair na tabela de "de acordo", avise que vai precisar da
+8. Se o pedido cair na tabela de "de acordo", avise que vai precisar da
    aprovação de um gestor antes de ir para a fila.
-8. Se for algo simples e conhecido (senha do Windows expirada, impressora
+9. Se for algo simples e conhecido (senha do Windows expirada, impressora
    sem papel), sugira a solução antes de abrir o chamado.
+
+ARQUIVOS QUE A PESSOA JÁ ANEXOU:
+${anexos.length ? anexos.map((a) => `  - ${a}`).join("\n") : "  (nenhum)"}
+Se já houver anexo, não peça print nem documento de novo. Se o caso for
+visual (erro na tela, equipamento danificado) e não houver anexo, você
+pode sugerir que a pessoa anexe pelo clipe ao lado do campo de texto.
 
 CONVERSA ATÉ AGORA:
 ${conversa}
@@ -396,7 +410,8 @@ Responda APENAS com um JSON válido, sem texto antes ou depois:
   "chamado": {
     "titulo": "resumo em uma linha, sem quebras",
     "descricao": "descrição objetiva do caso, em 1-3 frases",
-    "solicitanteNome": "nome completo, ou null",
+    "paraOutraPessoa": true | false,
+    "solicitanteNome": "nome completo de QUEM SERÁ ATENDIDO, ou null",
     "solicitanteEmail": "e-mail corporativo, ou null",
     "setor": "setor/departamento, ou null",
     "horarioTrabalho": "horário de trabalho, ou null",
@@ -424,13 +439,13 @@ você já conseguiu apurar (ou null nos campos que ainda faltam).`;
  * Recebe todo o histórico porque o modelo não guarda estado entre
  * chamadas — cada requisição precisa levar o contexto completo.
  */
-async function conversar({ historico, tiposDisponiveis = [], regrasAprovacao = [], usuario = "colaborador", dadosConhecidos = null }) {
+async function conversar({ historico, tiposDisponiveis = [], regrasAprovacao = [], usuario = "colaborador", dadosConhecidos = null, anexos = [] }) {
   const cfg = aiConfig();
   if (!cfg.apiKey) {
     throw new Error("AI_API_KEY não configurada.");
   }
 
-  const prompt = montarPromptConversa({ historico, tiposDisponiveis, regrasAprovacao, usuario, dadosConhecidos });
+  const prompt = montarPromptConversa({ historico, tiposDisponiveis, regrasAprovacao, usuario, dadosConhecidos, anexos });
   const inicio = Date.now();
 
   let resposta;
@@ -481,8 +496,11 @@ async function conversar({ historico, tiposDisponiveis = [], regrasAprovacao = [
     else c.maquina = null;
   }
 
-  // Preenche o que a sessão já sabe, caso o modelo não tenha repetido.
-  if (dadosConhecidos) {
+  // Só reaproveitamos os dados da sessão quando o chamado é para quem
+  // está logado. Se for para outra pessoa, preencher aqui gravaria o
+  // nome errado no chamado.
+  c.paraOutraPessoa = !!c.paraOutraPessoa;
+  if (dadosConhecidos && !c.paraOutraPessoa) {
     c.solicitanteNome = c.solicitanteNome || dadosConhecidos.nome || null;
     c.solicitanteEmail = c.solicitanteEmail || dadosConhecidos.email || null;
     c.setor = c.setor || dadosConhecidos.setor || null;

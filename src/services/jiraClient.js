@@ -338,8 +338,70 @@ async function createServiceDeskRequest({ subject, body, requesterEmail, request
   return data; // contem issueKey, issueId, _links.web, etc.
 }
 
+/**
+ * Anexa arquivos a um chamado.
+ *
+ * O Jira exige duas etapas: primeiro sobe o arquivo para uma área
+ * temporária do service desk, depois vincula esse arquivo ao chamado.
+ * Não existe um endpoint único que faça as duas coisas.
+ *
+ * Falhas aqui não derrubam a operação: o chamado já existe, e perder um
+ * anexo é bem menos grave do que perder o chamado.
+ */
+async function anexarArquivos(issueKey, arquivos) {
+  if (!arquivos?.length) return { anexados: 0 };
+
+  const { JIRA_BASE_URL, JIRA_SERVICE_DESK_ID } = process.env;
+  const FormData = require("form-data");
+  const fs = require("fs");
+
+  try {
+    // ---- Etapa 1: enviar para a área temporária ----
+    const form = new FormData();
+    for (const arq of arquivos) {
+      form.append("file", fs.createReadStream(arq.path), {
+        filename: arq.originalname,
+        contentType: arq.mimetype,
+      });
+    }
+
+    const { data: temp } = await axios.post(
+      `${JIRA_BASE_URL}/rest/servicedeskapi/servicedesk/${JIRA_SERVICE_DESK_ID}/attachTemporaryFile`,
+      form,
+      {
+        headers: {
+          ...form.getHeaders(),
+          Authorization: jiraAuthHeader(),
+          // Obrigatório neste endpoint: sem ele o Jira recusa por XSRF.
+          "X-Atlassian-Token": "no-check",
+        },
+        timeout: 60000,
+        maxBodyLength: Infinity,
+      }
+    );
+
+    const ids = (temp.temporaryAttachments || []).map((t) => t.temporaryAttachmentId);
+    if (!ids.length) throw new Error("O Jira não devolveu identificadores de anexo.");
+
+    // ---- Etapa 2: vincular ao chamado ----
+    await axios.post(
+      `${JIRA_BASE_URL}/rest/servicedeskapi/request/${issueKey}/attachment`,
+      { temporaryAttachmentIds: ids, public: true },
+      { headers: jiraHeaders(), timeout: 60000 }
+    );
+
+    console.log(`[jira] ${issueKey}: ${ids.length} anexo(s) enviado(s).`);
+    return { anexados: ids.length };
+  } catch (err) {
+    const detalhe = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+    console.error(`[jira] ${issueKey}: falha ao anexar arquivos — ${detalhe}`);
+    return { anexados: 0, erro: err.message };
+  }
+}
+
 module.exports = {
   createServiceDeskRequest,
+  anexarArquivos,
   getRequestTypeGroups,
   isValidRequestType,
   getRequestTypeName,
