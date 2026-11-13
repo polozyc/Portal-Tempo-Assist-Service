@@ -340,7 +340,11 @@ function montarPromptConversa({ historico, tiposDisponiveis, regrasAprovacao, us
     .map((r) => `  - ${r.label} -> aprovação de: ${r.roles.join(" e ")}`)
     .join("\n");
 
-  const conversa = historico
+  const MAX_TURNOS = 10;
+  const historicoRecente = historico.length > MAX_TURNOS
+    ? historico.slice(-MAX_TURNOS)
+    : historico;
+  const conversa = historicoRecente
     .map((m) => `${m.autor === "usuario" ? "SOLICITANTE" : "VOCÊ"}: ${m.texto}`)
     .join("\n");
 
