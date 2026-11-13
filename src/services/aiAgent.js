@@ -169,8 +169,8 @@ async function chamarGemini({ apiKey, model, prompt }) {
       const status = err.response?.status;
       const expirou = err.code === "ECONNABORTED";
 
-      // 404 = aposentado | 429 = cota esgotada | timeout = lento demais.
-      if (status === 404 || status === 429 || expirou) {
+      // 404 = aposentado | 429 = cota esgotada | 503 = sobrecarga | timeout = lento demais.
+      if (status === 404 || status === 429 || status === 503 || expirou) {
         console.warn(`[agente] "${m}" ${expirou ? "demorou demais" : `indisponível (${status})`}.`);
         ultimoErro = err;
         continue;
@@ -547,3 +547,4 @@ module.exports = {
   montarPrompt,
   montarPromptConversa,
 };
+ 
